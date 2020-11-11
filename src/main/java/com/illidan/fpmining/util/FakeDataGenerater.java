@@ -67,7 +67,7 @@ public class FakeDataGenerater {
         // Stream.generate().limit()
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer = (StringBuffer) Stream.iterate(stringBuffer, this::generateFakeData)
-                .limit(n)
+                .limit(n + 1)
                 .toArray()[0];
         
         Path path = Paths.get(getClass().getResource("/").toURI()).toAbsolutePath();
