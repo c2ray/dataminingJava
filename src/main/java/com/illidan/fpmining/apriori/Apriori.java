@@ -65,10 +65,14 @@ public class Apriori implements FpAlgorithm {
         Apriori.currentFrequentItemSetAndCount = currentFrequentItemSetAndCount;
     }
     
-    public Apriori(float minSupport,
-                   float minConfidence) {
-        this.minSupportRate = minSupport;
-        this.minConfidenceRate = minConfidence;
+    public Apriori(double minSupport,
+                   double minConfidence) {
+        if (minSupport > 1 || minSupport < 0 ||
+                minConfidence > 1 || minConfidence < 0) {
+            throw new IllegalArgumentException("输入参数必须在[0,1]之间");
+        }
+        this.minSupportRate = (float) minSupport;
+        this.minConfidenceRate = (float) minConfidence;
         itemNameAndMark = new HashMap<>();
         allShoppingData = new ArrayList<>();
         currentFrequentItemSetAndCount = new HashMap<>();
@@ -165,6 +169,8 @@ public class Apriori implements FpAlgorithm {
             setCurrentFrequentItemSetAndCount(itemSetAndCount);
             addUpCurrentDemenstion();
             recordCurrentItemSets();
+        } else {
+            showAssociationRules(itemSetAndCount.keySet());
         }
         
         logger.debug("第一次过滤支持度计数之后的当前频繁项集及其计数: {}", itemSetAndCount);
@@ -198,10 +204,6 @@ public class Apriori implements FpAlgorithm {
                             frequentItemSetAndCount.compute(frequentItemSet,
                                     (itemSet, count) -> frequentItemSetAndCount
                                             .containsKey(frequentItemSet) ? ++count : 0);
-                            // frequentItemSetAndCount.computeIfAbsent(frequentItemSet,
-                            //         itemSet -> frequentItemSetAndCount.put(frequentItemSet, 0));
-                            // frequentItemSetAndCount.computeIfPresent(frequentItemSet,
-                            //         (itemSet, count) -> ++count);
                         }
                     });
                 }
@@ -226,7 +228,7 @@ public class Apriori implements FpAlgorithm {
      */
     public void aprioriGen() {
         while (true) {
-            // 交k叉后获取的新的项集
+            // 连接后获取的新的项集
             List<Set<Integer>> crossItemSets = getCrossItemSet();
             logger.debug("交叉后的新的项集: {}", crossItemSets);
             
@@ -247,7 +249,9 @@ public class Apriori implements FpAlgorithm {
                 recordCurrentItemSets();
             } else {
                 // 不能挖掘出新的频繁模式, 停止循环
-                logger.info("最大频繁项集及其计数: {}", currentFrequentItemSetAndCount);
+                
+                logger.warn("最大频繁项集及其计数: {}", currentFrequentItemSetAndCount);
+                showAssociationRules(currentFrequentItemSetAndCount.keySet());
                 break;
             }
         }
@@ -257,7 +261,6 @@ public class Apriori implements FpAlgorithm {
     /**
      * 过滤子项集非频繁的项集
      */
-    @SuppressWarnings("all")
     private List<Set<Integer>> filterInfrequentItemSet(List<Set<Integer>> itemSets) {
         // 为了去掉连接生成的重复的项集, 先转成set
         return itemSets.stream()
@@ -313,6 +316,7 @@ public class Apriori implements FpAlgorithm {
                 }
             }
         }
+        
         return new ArrayList<>(newItemSets);
     }
     
@@ -320,11 +324,10 @@ public class Apriori implements FpAlgorithm {
      * 判断两个项集是否是可以相交的
      */
     private boolean isJoinable(List<Integer> itemSet1, List<Integer> itemSet2) {
-        // 频繁一项集默认可以交叉
+        // 频繁1项集默认可以交叉
         if (currentItemSetDimonsion == 1) {
             return true;
         }
-        
         // 处理一般情况
         int sameCount = 0;
         for (Integer item : itemSet1) {
@@ -332,7 +335,6 @@ public class Apriori implements FpAlgorithm {
                 sameCount++;
             }
         }
-        
         // 如果两个itemSet有 k-1 个元素相同, 则表示可以交叉
         return sameCount == currentItemSetDimonsion - 1;
     }
@@ -351,13 +353,85 @@ public class Apriori implements FpAlgorithm {
         return new HashSet<>(itemSet1);
     }
     
-    // todo 切分当前项集, 枚举其所有的子项集并对其进行计数(计算置信度)
     
-    
-    // todo 产生关联规则
-    // private gen
-    
-    public static void main(String[] args) {
-    
+    /**
+     * @param itemSets 待挖掘的频繁项集集合
+     */
+    private void showAssociationRules(Set<Set<Integer>> itemSets) {
+        // 如果频繁项集长度为1, 则无关联规则
+        if (currentItemSetDimonsion == 1) {
+            logger.info("无关联规则");
+        }
+        // 频繁项集长度大于1, 开始计算关联规则
+        // itemSet 表示带挖掘的频繁项集
+        itemSets.forEach(itemSet -> {
+            // 如果当前项集长度为4: 则拆分成 3,1; 2,2;
+            // 如果当前项集长度为5: 则拆分成 4,1; 3,2;
+            // 如果当前项集长度为6: 则拆分成 5,1; 4,2; 3,3;
+            for (int i = 1;
+                 i <= currentItemSetDimonsion / 2;
+                 i++) {
+                Map<Set<Integer>, Integer> itemSetAndCount =
+                        demensionAndfrequentItemSetAndCounts.get(i);
+                // 遍历每一个维度为i的频繁项集
+                itemSetAndCount.keySet()
+                        // itemSet1 表示已保存计数的频繁项集
+                        .forEach(itemSet1 -> {
+                            if (itemSet.containsAll(itemSet1)) {
+                                Set<Integer> itemSet2 = new HashSet<>(itemSet);
+                                // itemSet1的补集
+                                itemSet2.removeAll(itemSet1);
+                                // 计算置信度
+                                countConfidence(itemSet1, itemSet2, itemSet);
+                                countConfidence(itemSet2, itemSet1, itemSet);
+                            }
+                        });
+            }
+        });
     }
+    
+    /**
+     * 计算置信度
+     * <p>
+     * itemSet = itemSet1 + itemSet2
+     */
+    private void countConfidence(Set<Integer> itemSet1,
+                                 Set<Integer> itemSet2,
+                                 Set<Integer> itemSet) {
+        // 获取事务A的支持度计数
+        int itemSet1Size = itemSet1.size();
+        Map<Set<Integer>, Integer> itemSetAndCount =
+                demensionAndfrequentItemSetAndCounts.get(itemSet1Size);
+        Integer supportA = itemSetAndCount.get(itemSet1);
+        Integer supportAb = currentFrequentItemSetAndCount.get(itemSet);
+        // 置信度(%)
+        int confidence = supportAb * 100 / supportA;
+        
+        Set<String> stringItemSet1 = convertItemSet(itemSet1);
+        Set<String> stringItemSet2 = convertItemSet(itemSet2);
+        
+        // 输出关联规则
+        if (confidence >= minConfidenceRate * 100) {
+            
+            logger.warn("{} => {}, 置信度{}%", stringItemSet1, stringItemSet2, confidence);
+        } else {
+            logger.info("{} => {}, 置信度{}%", stringItemSet1, stringItemSet2, confidence);
+        }
+    }
+    
+    /**
+     * 将数字项集转换成文字项集, 以获取人性化的输出
+     */
+    private Set<String> convertItemSet(Set<Integer> itemSet) {
+        Set<String> stringSet = new HashSet<>();
+        itemSet.forEach(itemInt -> {
+            itemNameAndMark.forEach((key, value) -> {
+                if (itemInt.equals(value)) {
+                    stringSet.add(key);
+                }
+            });
+        });
+        return stringSet;
+    }
+    
 }
