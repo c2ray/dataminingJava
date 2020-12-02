@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  */
 public class GeneticAlgorithmImpl {
     
-    //todo 数据的预处理对算法的影响很大
     
     private final Logger logger = LoggerFactory.getLogger(GeneticAlgorithmImpl.class);
     
@@ -92,7 +91,12 @@ public class GeneticAlgorithmImpl {
      * <p>
      * Integer表示染色体中含有1的个数,
      */
-    private final Map<Integer, Map<String, Integer>> onesTochromosomeAndCount;
+    private final Map<String, Integer> chromosomeAndCounts;
+    
+    /**
+     * 用于缓存染色体的总计数(染色体自身数量 + 父集的数量)
+     */
+    private final Map<String, Integer> chromosomeTotalCount;
     
     public GeneticAlgorithmImpl(double supportRate,
                                 double confidenceRate,
@@ -108,8 +112,9 @@ public class GeneticAlgorithmImpl {
         this.crossRate = crossRate;
         this.elitism = elitism;
         itemNameAndMarks = new HashMap<>();
-        onesTochromosomeAndCount = new HashMap<>();
+        chromosomeAndCounts = new HashMap<>();
         this.loopCount = loopCount;
+        chromosomeTotalCount = new HashMap<>();
     }
     
     /**
@@ -137,7 +142,7 @@ public class GeneticAlgorithmImpl {
         StringBuilder chromosomeStrBuilder = new StringBuilder(chromosomeStr);
         while (len < chromosomeLen) {
             chromosomeStrBuilder.insert(0, "0");
-            len++;
+            ++len;
         }
         return chromosomeStrBuilder.toString();
     }
@@ -152,7 +157,7 @@ public class GeneticAlgorithmImpl {
         // 将[0, 1, 3] -> 1011; 记录每个染色体出现的次数
         countChromosomeOccurrence(allShoppingDataMarked);
         logger.debug("item名称及其标号: {}", itemNameAndMarks);
-        logger.debug("染色体及其计数: {}", onesTochromosomeAndCount);
+        logger.debug("染色体及其计数: {}", chromosomeAndCounts);
     }
     
     /**
@@ -196,30 +201,13 @@ public class GeneticAlgorithmImpl {
         List<String> chromosomes = allShoppingDataMarked.stream()
                 .map(this::shoppingDataToChromosome)
                 .collect(Collectors.toList());
-        // 过滤掉重复出现的染色体, 获取所有染色体的种类
-        HashSet<String> chromosomeSet = new HashSet<>(chromosomes);
-        // todo: 重构
-        // chromosome1是子串
-        // 对染色体进行计数, 并且按含有1的个数进行划分
-        for (String chromosome1 : chromosomeSet) {
-            int onesCount = countOnesInChromosome(chromosome1);
-            for (String chromosome2 : chromosomes) {
-                if (isSubStr(chromosome2, chromosome1)) {
-                    onesTochromosomeAndCount.compute(onesCount, (onesCount_, chromosomeAndCount) -> {
-                        if (onesTochromosomeAndCount.containsKey(onesCount_)) {
-                            chromosomeAndCount.compute(chromosome1,
-                                    (chromosome, count) -> chromosomeAndCount
-                                            .containsKey(chromosome) ? ++count : 1);
-                            return chromosomeAndCount;
-                        } else {
-                            HashMap<String, Integer> chromosomeAndCount_ = new HashMap<>();
-                            chromosomeAndCount_.put(chromosome1, 1);
-                            return chromosomeAndCount_;
-                        }
-                    });
-                }
-            }
-        }
+        
+        // 记录所有的染色体出现的次数
+        chromosomes.forEach(chromosome -> {
+            chromosomeAndCounts.compute(chromosome,
+                    (chromosomeStr, count) ->
+                            chromosomeAndCounts.containsKey(chromosome) ? ++count : 1);
+        });
     }
     
     
@@ -230,7 +218,7 @@ public class GeneticAlgorithmImpl {
         int count = 0;
         for (int i = 0; i < chromosome.length(); i++) {
             if (chromosome.charAt(i) == '1') {
-                count++;
+                ++count;
             }
         }
         return count;
@@ -278,21 +266,24 @@ public class GeneticAlgorithmImpl {
      * 获取随机生成的染色体的支持度计数
      */
     private Integer getChromosomeCount(String chromosomeStr) {
-        int ones = countOnesInChromosome(chromosomeStr);
-        if (onesTochromosomeAndCount.containsKey(ones)) {
-            return onesTochromosomeAndCount.get(ones)
-                    .getOrDefault(chromosomeStr, 0);
-        } else {
-            Integer min = Collections.min(onesTochromosomeAndCount.keySet());
-            Map<String, Integer> chromosomeAndCount = onesTochromosomeAndCount.get(min);
-            return chromosomeAndCount.entrySet()
-                    .stream()
-                    .reduce(0,
-                            (integer, stringIntegerEntry) ->
-                                    isSubStr(stringIntegerEntry.getKey(), chromosomeStr) ?
-                                            integer + stringIntegerEntry.getValue() : integer,
-                            Integer::sum);
+        int totalCount;
+        // 从缓存中获取染色体总计数
+        totalCount = chromosomeTotalCount.getOrDefault(chromosomeStr, 0);
+        
+        if (totalCount != 0) {
+            return totalCount;
         }
+        
+        for (Map.Entry<String, Integer> chromosomeAndCount : chromosomeAndCounts.entrySet()) {
+            String chromosome = chromosomeAndCount.getKey();
+            if (isSubStr(chromosome, chromosomeStr)) {
+                Integer count = chromosomeAndCount.getValue();
+                totalCount += count;
+            }
+        }
+        // 将染色体及其总计数
+        chromosomeTotalCount.put(chromosomeStr, totalCount);
+        return totalCount;
     }
     
     /**
@@ -453,7 +444,6 @@ public class GeneticAlgorithmImpl {
         return population;
     }
     
-    //todo sort by fitness
     
     /**
      * 获取频繁项集
@@ -476,9 +466,8 @@ public class GeneticAlgorithmImpl {
         chromosomes.removeIf(s -> countOnesInChromosome(s) != onesCount);
         
         // 输出日志
-        Map<String, Integer> chromosomeAndCount = onesTochromosomeAndCount.get(onesCount);
         for (String chromosome : chromosomes) {
-            Integer count = chromosomeAndCount.get(chromosome);
+            Integer count = getChromosomeCount(chromosome);
             List<String> frequentSet = chromosomeToFrequentSet(chromosome);
             logger.info("染色体及其支持度计数: {} : {}", frequentSet, count);
         }

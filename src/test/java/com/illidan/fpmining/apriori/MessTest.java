@@ -130,6 +130,12 @@ public class MessTest {
         individualsSorted.forEach(individual -> {
             System.out.println(individual.getFintness());
         });
-        
+    }
+    
+    @Test
+    void testHashMap() {
+        HashMap<String, Integer> stringIntegerHashMap = new HashMap<>();
+        Integer hello = stringIntegerHashMap.get("hello");
+        System.out.println(hello);
     }
 }

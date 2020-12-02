@@ -16,14 +16,14 @@
 	<dependencies>
 
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-csv -->
+		<!-- csv 文件阅读 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-csv</artifactId>
 			<version>1.8</version>
 		</dependency>
 
-
-
+		<!-- 日志依赖 -->
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
@@ -42,6 +42,20 @@
 			<artifactId>apriori4j</artifactId>
 			<version>0.4</version>
 		</dependency>
+
+		<!-- fpgrowth依赖 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava-primitives</artifactId>
+			<version>r03</version>
+		</dependency>
+
 
 	</dependencies>
 

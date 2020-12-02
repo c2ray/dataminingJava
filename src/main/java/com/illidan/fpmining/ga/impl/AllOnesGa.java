@@ -18,11 +18,11 @@ public class AllOnesGa {
     
     public static void main(String[] args) throws IOException {
         
-        String path = "/fake/data1.csv";
+        String path = "/fake/fake_data_100000.csv";
         GeneticAlgorithmImpl geneticAlgorithm =
-                new GeneticAlgorithmImpl(0.22,
+                new GeneticAlgorithmImpl(0.4,
                         0.6, 100, 0.95,
-                        0.001, 4, 100);
+                        0.001, 4, 32);
         
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(path);
         

@@ -42,7 +42,7 @@ class AprioriTest {
         
         // 读取csv格式的数据
         // String fileName = "/fake/data1.csv";
-        String fileName = String.format("/fake/fake_data_%d.csv", 1_000_000);
+        String fileName = String.format("/fake/fake_data_%d.csv", 1_000_000 );
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
         
         // 开始计时
