@@ -1,42 +1,84 @@
 package com.illidan.fpmining.apriori;
 
+import com.illidan.fpmining.util.DataReader;
+import org.apache.commons.csv.CSVRecord;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.List;
 
 class AprioriTest {
     
-    private final Apriori apriori = new Apriori(0.3, 0.6);
+    private Apriori apriori;
+    
+    private final Logger logger = LoggerFactory.getLogger(AprioriTest.class);
     
     @Test
-    void testApriori() throws IOException {
-        // 支持率为0.4
-        // 十级别(0.04)
-        // 百级别(0.049)
-        // 千级别(0.1s)
-        // 万级别(0.38s)
-        // 十万级别(4.5s)
-        // 百万级别(60s)
+    void testAprioriForBookexercise() throws IOException {
+        apriori = new Apriori(0.22, 0.6);
+        String fileName = "/fake/data1.csv";
+        List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
         
-        // 砍掉io开销
-        // 万级别(0.2s)
-        // 十万级别(4s)
-        // 百万级别(38.4s)
-        apriori.getData("/fake/fake_data_100.csv");
         long start = System.currentTimeMillis();
         
+        apriori.getData(csvRecords);
         apriori.findFirstFrequentItemset();
         apriori.aprioriGen();
         
         long end = System.currentTimeMillis();
-        System.out.println("用时: " + (end - start) + " ms");
+        logger.warn("用时: {} ms", end - start);
+    }
+    
+    
+    @Test
+    void testApriori() throws IOException {
+        apriori = new Apriori(0.4, 0.6);
+        
+        // 读取csv格式的数据
+        // String fileName = "/fake/data1.csv";
+        String fileName = String.format("/fake/fake_data_%d.csv", 1_000_000);
+        List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
+        
+        // 开始计时
+        long start = System.currentTimeMillis();
+        
+        apriori.getData(csvRecords);
+        apriori.findFirstFrequentItemset();
+        apriori.aprioriGen();
+        
+        long end = System.currentTimeMillis();
+        logger.warn("用时: {} ms", end - start);
         
     }
     
+    
+    @ParameterizedTest
+    @MethodSource("suffixSource")
+    void testApriori2(int fileSuffix) throws IOException {
+        String fileName = String.format("/fake/fake_data_%d.csv", fileSuffix);
+        List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
+        
+        apriori.getData(csvRecords);
+        apriori.findFirstFrequentItemset();
+        apriori.aprioriGen();
+        
+    }
+    
+    
     @Test
+    @Disabled
     void testGetData() throws IOException, URISyntaxException {
         apriori.getData2("/fake/fake_data_10000000.csv");
+    }
+    
+    static int[] suffixSource() {
+        return new int[]{10, 100, 1000, 10_000, 100_000, 1_000_000};
     }
 }
 

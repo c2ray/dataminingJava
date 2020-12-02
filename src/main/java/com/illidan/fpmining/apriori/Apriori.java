@@ -1,14 +1,12 @@
 package com.illidan.fpmining.apriori;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -17,14 +15,14 @@ import java.util.stream.Collectors;
 /**
  * @author Illidan
  */
-public class Apriori implements FpAlgorithm {
+public class Apriori {
     
     private final Logger logger = LoggerFactory.getLogger(Apriori.class);
     
     /**
      * 当前项集维数
      */
-    private static int currentItemSetDimonsion = 0;
+    private int currentItemSetDimonsion = 0;
     
     /**
      * 最小支持阈值
@@ -43,12 +41,12 @@ public class Apriori implements FpAlgorithm {
      * <p>
      * 记录(频繁项集及其计数)集合 及其维数
      */
-    private static Map<Integer, Map<Set<Integer>, Integer>> demensionAndfrequentItemSetAndCounts;
+    private final Map<Integer, Map<Set<Integer>, Integer>> demensionAndfrequentItemSetAndCounts;
     
     /**
      * 当前最大的频繁项集及其支持度计数
      */
-    private static Map<Set<Integer>, Integer> currentFrequentItemSetAndCount;
+    private Map<Set<Integer>, Integer> currentFrequentItemSetAndCount;
     
     /**
      * 用于存放所有的购物信息
@@ -62,7 +60,7 @@ public class Apriori implements FpAlgorithm {
     
     private void setCurrentFrequentItemSetAndCount(Map<Set<Integer>,
             Integer> currentFrequentItemSetAndCount) {
-        Apriori.currentFrequentItemSetAndCount = currentFrequentItemSetAndCount;
+        this.currentFrequentItemSetAndCount = currentFrequentItemSetAndCount;
     }
     
     public Apriori(double minSupport,
@@ -81,21 +79,13 @@ public class Apriori implements FpAlgorithm {
     
     
     /**
-     * 从指定csv文件获取数据
+     * 使用DataReader读取数据后传入此方法
      *
-     * @param csvPath csv 数据文件
-     * @throws IOException 数据读取异常
+     * @see com.illidan.fpmining.util.DataReader DataReader
      */
-    public void getData(String csvPath) throws IOException {
-        logger.debug("从 {} 读取数据", csvPath);
-        
-        CSVParser csvRecords = CSVParser
-                .parse(getClass().getResource(csvPath),
-                        Charset.defaultCharset(),
-                        CSVFormat.DEFAULT);
-        List<CSVRecord> records = csvRecords.getRecords();
-        
-        // 从csv文件中提取购买的货物
+    public void getData(List<CSVRecord> records) {
+        // 将商品种类转换成 0, 1, 2 这样的数字, 避免字符串比较浪费性能
+        // 将购买记录转化为set<Integer>, ([0, 1, 4]);
         records.forEach(record -> {
             // 一条购物数据
             String itemsBoughtStr = record.get(0);
@@ -113,8 +103,9 @@ public class Apriori implements FpAlgorithm {
             allShoppingData.add(shoppingData);
         });
         logger.debug("所有购物数据: {}", allShoppingData);
-        logger.debug("item名称及其标号: {}", itemNameAndMark);
+        logger.warn("item名称及其标号: {}", itemNameAndMark);
     }
+    
     
     /**
      * 从指定csv文件获取数据
@@ -123,11 +114,11 @@ public class Apriori implements FpAlgorithm {
      * @throws IOException 数据读取异常
      */
     public void getData2(String csvPath) throws URISyntaxException, IOException {
-        List<String> records = Files.readAllLines(Paths.get(getClass().getResource(csvPath).toURI()));
+        URI filePath = getClass().getResource(csvPath).toURI();
+        List<String> records = Files.readAllLines(Paths.get(filePath));
         
         records.forEach(record -> {
             Set<Integer> shoppingData = new HashSet<>();
-            
             for (String itemBought : record.split(",")) {
                 // item类别计数
                 int itemClassCount = itemNameAndMark.size();
@@ -141,7 +132,7 @@ public class Apriori implements FpAlgorithm {
         });
         
         logger.debug("所有购物数据: {}", allShoppingData);
-        logger.debug("item名称及其标号: {}", itemNameAndMark);
+        logger.warn("item名称及其标号: {}", itemNameAndMark);
     }
     
     
@@ -157,14 +148,11 @@ public class Apriori implements FpAlgorithm {
         List<Set<Integer>> itemSets = itemMarks.stream()
                 .map(Collections::singleton)
                 .collect(Collectors.toList());
-        
         // 对所有商品标号进行计数
         Map<Set<Integer>, Integer> itemSetAndCount = countSupportForItemSets(itemSets);
         logger.debug("第一次过滤支持度计数之前的当前频繁项集及其计数: {}", itemSetAndCount);
-        
         // 按支持度对项集进行过滤
         itemSetAndCount = filterItemSetsByMinSupport(itemSetAndCount);
-        
         if (itemSetAndCount.size() > 0) {
             setCurrentFrequentItemSetAndCount(itemSetAndCount);
             addUpCurrentDemenstion();
@@ -172,7 +160,6 @@ public class Apriori implements FpAlgorithm {
         } else {
             showAssociationRules(itemSetAndCount.keySet());
         }
-        
         logger.debug("第一次过滤支持度计数之后的当前频繁项集及其计数: {}", itemSetAndCount);
     }
     
@@ -203,7 +190,7 @@ public class Apriori implements FpAlgorithm {
                         if (shoppingData.containsAll(frequentItemSet)) {
                             frequentItemSetAndCount.compute(frequentItemSet,
                                     (itemSet, count) -> frequentItemSetAndCount
-                                            .containsKey(frequentItemSet) ? ++count : 0);
+                                            .containsKey(frequentItemSet) ? ++count : 1);
                         }
                     });
                 }
@@ -249,7 +236,6 @@ public class Apriori implements FpAlgorithm {
                 recordCurrentItemSets();
             } else {
                 // 不能挖掘出新的频繁模式, 停止循环
-                
                 logger.warn("最大频繁项集及其计数: {}", currentFrequentItemSetAndCount);
                 showAssociationRules(currentFrequentItemSetAndCount.keySet());
                 break;
@@ -257,14 +243,13 @@ public class Apriori implements FpAlgorithm {
         }
     }
     
-    
     /**
      * 过滤子项集非频繁的项集
      */
     private List<Set<Integer>> filterInfrequentItemSet(List<Set<Integer>> itemSets) {
         // 为了去掉连接生成的重复的项集, 先转成set
         return itemSets.stream()
-                .filter(Apriori::isSubSetFrequent)
+                .filter(this::isSubSetFrequent)
                 .distinct()
                 .collect(Collectors.toList());
     }
@@ -273,7 +258,7 @@ public class Apriori implements FpAlgorithm {
      * 判断一个项集的子集是否是频繁的(如果项集维数为1, 则可以跳过)
      */
     @SuppressWarnings("all")
-    private static boolean isSubSetFrequent(Set<Integer> itemSet) {
+    private boolean isSubSetFrequent(Set<Integer> itemSet) {
         // 如果是二项集, 则其子项集必定是频繁项集
         if (currentItemSetDimonsion == 1) {
             return true;
@@ -301,10 +286,8 @@ public class Apriori implements FpAlgorithm {
     private List<Set<Integer>> getCrossItemSet() {
         // 获取当前频繁项集
         List<Set<Integer>> itemSets = new ArrayList<>(currentFrequentItemSetAndCount.keySet());
-        
         // 新的 k+1 项集
         Set<Set<Integer>> newItemSets = new HashSet<>();
-        
         // 比较每一个元素
         for (int i = 0; i < itemSets.size() - 1; i++) {
             for (int j = i; j < itemSets.size() - 1; j++) {
@@ -398,21 +381,21 @@ public class Apriori implements FpAlgorithm {
     private void countConfidence(Set<Integer> itemSet1,
                                  Set<Integer> itemSet2,
                                  Set<Integer> itemSet) {
+        // confidence = supportAB / supportA
         // 获取事务A的支持度计数
         int itemSet1Size = itemSet1.size();
         Map<Set<Integer>, Integer> itemSetAndCount =
                 demensionAndfrequentItemSetAndCounts.get(itemSet1Size);
         Integer supportA = itemSetAndCount.get(itemSet1);
         Integer supportAb = currentFrequentItemSetAndCount.get(itemSet);
-        // 置信度(%)
-        int confidence = supportAb * 100 / supportA;
+        // 置信度(%)(经过四舍五入处理)
+        int confidence = Math.round((float) supportAb * 100 / supportA);
         
         Set<String> stringItemSet1 = convertItemSet(itemSet1);
         Set<String> stringItemSet2 = convertItemSet(itemSet2);
         
         // 输出关联规则
         if (confidence >= minConfidenceRate * 100) {
-            
             logger.warn("{} => {}, 置信度{}%", stringItemSet1, stringItemSet2, confidence);
         } else {
             logger.info("{} => {}, 置信度{}%", stringItemSet1, stringItemSet2, confidence);
@@ -424,13 +407,12 @@ public class Apriori implements FpAlgorithm {
      */
     private Set<String> convertItemSet(Set<Integer> itemSet) {
         Set<String> stringSet = new HashSet<>();
-        itemSet.forEach(itemInt -> {
-            itemNameAndMark.forEach((key, value) -> {
-                if (itemInt.equals(value)) {
-                    stringSet.add(key);
-                }
-            });
-        });
+        itemSet.forEach(itemInt ->
+                itemNameAndMark.forEach((key, value) -> {
+                    if (itemInt.equals(value)) {
+                        stringSet.add(key);
+                    }
+                }));
         return stringSet;
     }
     

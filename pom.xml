@@ -12,17 +12,6 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
-	<build>
-		<resources>
-			<resource>
-				<includes>
-					<include>
-						**/*.csv
-					</include>
-				</includes>
-			</resource>
-		</resources>
-	</build>
 
 	<dependencies>
 
@@ -47,9 +36,25 @@
 			<version>5.7.0</version>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>com.github.seratch</groupId>
+			<artifactId>apriori4j</artifactId>
+			<version>0.4</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<includes>
+					<include>
+						**/*.csv
+					</include>
+				</includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

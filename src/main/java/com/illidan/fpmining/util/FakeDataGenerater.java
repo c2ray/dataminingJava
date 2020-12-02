@@ -64,7 +64,6 @@ public class FakeDataGenerater {
      */
     public void generateFakeDatas(int n, int maxItemCount) throws IOException, URISyntaxException {
         this.maxItemCount = maxItemCount;
-        // Stream.generate().limit()
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer = (StringBuffer) Stream.iterate(stringBuffer, this::generateFakeData)
                 .limit(n + 1)
@@ -73,7 +72,7 @@ public class FakeDataGenerater {
         Path path = Paths.get(getClass().getResource("/").toURI()).toAbsolutePath();
         // 这里的路径不能加 /, 否则会从盘符开始: J:/...
         Path csvFilePath = path.resolve(String.format("fake/fake_data_%s.csv", n));
-        logger.debug("输出文件路径: {}", csvFilePath);
+        logger.info("输出文件路径: {}", csvFilePath);
         // 将结果写入到文件中
         FileWriter fileWriter = new FileWriter(csvFilePath.toFile());
         fileWriter.write(stringBuffer.toString());
