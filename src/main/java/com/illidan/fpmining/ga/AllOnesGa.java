@@ -1,4 +1,4 @@
-package com.illidan.fpmining.ga.impl;
+package com.illidan.fpmining.ga;
 
 import com.illidan.fpmining.util.DataReader;
 import org.apache.commons.csv.CSVRecord;
@@ -19,18 +19,17 @@ public class AllOnesGa {
     public static void main(String[] args) throws IOException {
         
         String path = "/fake/fake_data_100000.csv";
-        GeneticAlgorithmImpl geneticAlgorithm =
-                new GeneticAlgorithmImpl(0.4,
-                        0.6, 100, 0.95,
-                        0.001, 4, 32);
-        
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(path);
         
         long start = System.currentTimeMillis();
-        geneticAlgorithm.recordChromosomeCount(csvRecords);
-        geneticAlgorithm.ga();
-        List<String> frequentSet = geneticAlgorithm.getFrequentSet();
-        
+        FpGeneticAlgorithm fpGeneticAlgorithm =
+                new FpGeneticAlgorithm(0.4,
+                        0.6, 100, 0.95,
+                        0.001, 5, 100);
+        fpGeneticAlgorithm.recordChromosomeCount(csvRecords);
+        fpGeneticAlgorithm.ga();
+        List<String> frequentSet = fpGeneticAlgorithm.getFrequentSet();
+        fpGeneticAlgorithm.getRelationRules(frequentSet);
         
         long end = System.currentTimeMillis();
         logger.info("用时: {} ms", (end - start));

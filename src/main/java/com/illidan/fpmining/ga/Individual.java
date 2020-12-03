@@ -1,4 +1,4 @@
-package com.illidan.fpmining.ga.impl;
+package com.illidan.fpmining.ga;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;

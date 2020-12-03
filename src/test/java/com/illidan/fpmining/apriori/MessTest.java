@@ -1,6 +1,6 @@
 package com.illidan.fpmining.apriori;
 
-import com.illidan.fpmining.ga.impl.Individual;
+import com.illidan.fpmining.ga.Individual;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;

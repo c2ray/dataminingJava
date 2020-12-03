@@ -1,4 +1,4 @@
-package com.illidan.fpmining.ga.impl;
+package com.illidan.fpmining.ga;
 
 
 import org.apache.commons.csv.CSVRecord;
@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
  *
  * @author Illidan
  */
-public class GeneticAlgorithmImpl {
+public class FpGeneticAlgorithm {
     
     
-    private final Logger logger = LoggerFactory.getLogger(GeneticAlgorithmImpl.class);
+    private final Logger logger = LoggerFactory.getLogger(FpGeneticAlgorithm.class);
     
     /**
      * 支持率
@@ -98,23 +98,23 @@ public class GeneticAlgorithmImpl {
      */
     private final Map<String, Integer> chromosomeTotalCount;
     
-    public GeneticAlgorithmImpl(double supportRate,
-                                double confidenceRate,
-                                int popSize,
-                                double crossRate,
-                                double mutationRate,
-                                int elitism,
-                                int loopCount) {
+    public FpGeneticAlgorithm(double supportRate,
+                              double confidenceRate,
+                              int popSize,
+                              double crossRate,
+                              double mutationRate,
+                              int elitism,
+                              int loopCount) {
         this.supportRate = supportRate;
         this.confidenceRate = confidenceRate;
         this.populationSize = popSize;
         this.mutationRate = mutationRate;
         this.crossRate = crossRate;
         this.elitism = elitism;
-        itemNameAndMarks = new HashMap<>();
-        chromosomeAndCounts = new HashMap<>();
+        this.itemNameAndMarks = new HashMap<>();
+        this.chromosomeAndCounts = new HashMap<>();
         this.loopCount = loopCount;
-        chromosomeTotalCount = new HashMap<>();
+        this.chromosomeTotalCount = new HashMap<>();
     }
     
     /**
@@ -224,6 +224,19 @@ public class GeneticAlgorithmImpl {
         return count;
     }
     
+    /**
+     * 将染色体中'1'的下标记录下来, 并返回数组
+     */
+    private List<Integer> recordOneIndexInChromosome(String chromosome) {
+        ArrayList<Integer> indexes = new ArrayList<>();
+        for (int i = 0; i < chromosome.length(); i++) {
+            if (chromosome.charAt(i) == '1') {
+                indexes.add(i);
+            }
+        }
+        return indexes;
+    }
+    
     
     /**
      * 1. 将每个item用0, 1, 2 这样的数字表示, 并且用map记录
@@ -250,6 +263,7 @@ public class GeneticAlgorithmImpl {
             }
             allShoppingData.add(shoppingData);
         });
+        
         logger.debug("所有购物数据: {}", allShoppingData);
         return allShoppingData;
     }
@@ -437,13 +451,6 @@ public class GeneticAlgorithmImpl {
         }
     }
     
-    /**
-     * 获取种群
-     */
-    public Population getPopulation() {
-        return population;
-    }
-    
     
     /**
      * 获取频繁项集
@@ -451,8 +458,13 @@ public class GeneticAlgorithmImpl {
      * 1. 按适应度将染色体排序
      * <p>
      * 2. 去掉重复的染色体
+     * <p>
+     * 3. 输出频繁项集
+     * <p>
+     * 4. 返回频繁项集的染色体表示
      */
     public List<String> getFrequentSet() {
+        // 使得染色体各不相同
         List<String> chromosomes = Arrays.stream(population.getIndividuals())
                 .sorted()
                 // 染色体精英的适应度必定达标
@@ -460,22 +472,23 @@ public class GeneticAlgorithmImpl {
                 .map(Individual::toString)
                 .distinct()
                 .collect(Collectors.toList());
-        // 获得的第一个项集一定是最符合的频繁项集
+        // 确保获得的染色体的长度最长且相等
+        // 获得的第一个项集一定是最优的频繁项集
         String bestFrequentSet = chromosomes.get(0);
         int onesCount = countOnesInChromosome(bestFrequentSet);
         chromosomes.removeIf(s -> countOnesInChromosome(s) != onesCount);
         
-        // 输出日志
+        // 输出支持率
         for (String chromosome : chromosomes) {
             Integer count = getChromosomeCount(chromosome);
             List<String> frequentSet = chromosomeToFrequentSet(chromosome);
-            logger.info("染色体及其支持度计数: {} : {}", frequentSet, count);
+            logger.info("染色体及其支持率: {} : {}", frequentSet, (double) count / recordCount);
         }
         return chromosomes;
     }
     
     /**
-     * 将染色体转换成频繁项集, 输出结果时使用
+     * 将染色体转换成item频繁项集, 输出结果时使用
      */
     private List<String> chromosomeToFrequentSet(String chromosomeStr) {
         ArrayList<String> list = new ArrayList<>();
@@ -492,11 +505,108 @@ public class GeneticAlgorithmImpl {
         return list;
     }
     
+    /**
+     * 枚举从n中取k个元素的所有情况(枚举所有组合)
+     *
+     * @param idx     下标(起始值为0)
+     * @param n       元素个数
+     * @param k       取k个元素
+     * @param list    一个实例化的空列表, 用于生成下标
+     * @param collect 一个实例化的空列表, 用于收集数据
+     */
+    public void enumerateSubSets(int idx, int n, int k,
+                                 List<Integer> list,
+                                 List<List<Integer>> collect) {
+        if (list.size() == k) {
+            ArrayList<Integer> tempList = new ArrayList<>();
+            for (int i = 0; i < k; i++) {
+                tempList.add(list.get(i));
+            }
+            collect.add(tempList);
+            return;
+        }
+        if (idx >= n) return;
+        for (int i = idx; i < n; i++) {
+            list.add(i);
+            enumerateSubSets(i + 1, n, k, list, collect);
+            list.remove(list.size() - 1);
+        }
+    }
     
-    // todo: 人性化的输出结果
-    public void getRelationRules(List<String> frequentSet) {
+    
+    /**
+     * 获取子染色体及其对应的补染色体 (对应子集和子集的补集的概念)
+     */
+    private HashMap<String, String> getPairChromosomes(String chromosome) {
+        HashMap<String, String> hashMap = new HashMap<>(32);
+        List<Integer> indexes = recordOneIndexInChromosome(chromosome);
+        int onesCount = indexes.size();
+        // 获取所有的子集
+        for (int i = 1; i <= onesCount / 2; i++) {
+            ArrayList<Integer> list = new ArrayList<>();
+            ArrayList<List<Integer>> collect = new ArrayList<>();
+            enumerateSubSets(0, onesCount, i, list, collect);
+            for (List<Integer> subSetIndexes : collect) {
+                List<Integer> subset = new ArrayList<>();
+                List<Integer> complementarySet = new ArrayList<>(indexes);
+                
+                for (Integer index : subSetIndexes) {
+                    Integer oneIndex = indexes.get(index);
+                    subset.add(oneIndex);
+                }
+                complementarySet.removeAll(subset);
+                
+                String chromosome1 = onesIndexesToChromosome(subset);
+                String chromosome2 = onesIndexesToChromosome(complementarySet);
+                hashMap.put(chromosome1, chromosome2);
+            }
+        }
+        return hashMap;
+    }
     
     
+    /**
+     * 将表示下标为1的数组转换成染色体
+     */
+    private String onesIndexesToChromosome(List<Integer> onesIndexes) {
+        int chromosomeLength = itemNameAndMarks.size();
+        StringBuilder chromosome = new StringBuilder();
+        for (int i = 0; i < chromosomeLength; i++) {
+            if (onesIndexes.contains(i)) {
+                chromosome.append(1);
+            } else {
+                chromosome.append(0);
+            }
+        }
+        return chromosome.toString();
+    }
+    
+    
+    /**
+     * 输出关联规则
+     */
+    public void getRelationRules(List<String> chromosomes) {
+        for (String chromosome : chromosomes) {
+            HashMap<String, String> pairChromosomes = getPairChromosomes(chromosome);
+            for (Map.Entry<String, String> pairChromosome : pairChromosomes.entrySet()) {
+                String subChromosome = pairChromosome.getKey();
+                String complementarySet = pairChromosome.getValue();
+                Integer supportA = getChromosomeCount(subChromosome);
+                Integer supportAb = getChromosomeCount(chromosome);
+                
+                List<String> stringItemSetA = chromosomeToFrequentSet(subChromosome);
+                List<String> stringItemSetB = chromosomeToFrequentSet(complementarySet);
+                
+                int confidence = Math.round((float) supportAb * 100 / supportA);
+                
+                // 输出关联规则
+                if (confidence >= confidenceRate * 100) {
+                    logger.warn("{} => {}, 置信度{}%", stringItemSetA, stringItemSetB, confidence);
+                } else {
+                    logger.info("{} => {}, 置信度{}%", stringItemSetA, stringItemSetB, confidence);
+                }
+            }
+        }
     }
     
 }

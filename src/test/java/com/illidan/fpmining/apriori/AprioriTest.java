@@ -21,15 +21,14 @@ class AprioriTest {
     
     @Test
     void testAprioriForBookexercise() throws IOException {
-        apriori = new Apriori(0.22, 0.6);
         String fileName = "/fake/data1.csv";
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
-        
+        // 开始计时
         long start = System.currentTimeMillis();
         
-        apriori.getData(csvRecords);
-        apriori.findFirstFrequentItemset();
-        apriori.aprioriGen();
+        double minSupport = 0.22;
+        double minConfidence = 0.6;
+        testApriori(csvRecords, minSupport, minConfidence);
         
         long end = System.currentTimeMillis();
         logger.warn("用时: {} ms", end - start);
@@ -37,24 +36,28 @@ class AprioriTest {
     
     
     @Test
-    void testApriori() throws IOException {
-        apriori = new Apriori(0.4, 0.6);
-        
+    void timeApriori() throws IOException {
         // 读取csv格式的数据
-        // String fileName = "/fake/data1.csv";
-        String fileName = String.format("/fake/fake_data_%d.csv", 1_000_000 );
+        String fileName = String.format("/fake/fake_data_%d.csv", 1_000_00);
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
-        
         // 开始计时
         long start = System.currentTimeMillis();
         
+        double minSupport = 0.4;
+        double minConfidence = 0.6;
+        testApriori(csvRecords, minSupport, minConfidence);
+        
+        long end = System.currentTimeMillis();
+        System.out.println("用时: " + (end - start) + " ms");
+        
+    }
+    
+    void testApriori(List<CSVRecord> csvRecords, double minSupport, double minConfidence) {
+        apriori = new Apriori(minSupport, minConfidence);
         apriori.getData(csvRecords);
         apriori.findFirstFrequentItemset();
         apriori.aprioriGen();
-        
         long end = System.currentTimeMillis();
-        logger.warn("用时: {} ms", end - start);
-        
     }
     
     
@@ -63,7 +66,6 @@ class AprioriTest {
     void testApriori2(int fileSuffix) throws IOException {
         String fileName = String.format("/fake/fake_data_%d.csv", fileSuffix);
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
-        
         apriori.getData(csvRecords);
         apriori.findFirstFrequentItemset();
         apriori.aprioriGen();
