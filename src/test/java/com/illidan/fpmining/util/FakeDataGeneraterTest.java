@@ -16,8 +16,8 @@ class FakeDataGeneraterTest {
     @DisplayName("测试生成假数据")
     @Test
     void testFakeDataGenerater() throws IOException, URISyntaxException {
-        fakeDataGenerater.readItems("/fake/10items.csv");
-        fakeDataGenerater.generateFakeDatas(10, 10);
+        fakeDataGenerater.readItems("/fake/20items.csv");
+        fakeDataGenerater.generateFakeDatas(1000_000, 20);
     }
     
     @DisplayName("测试生成数据的数量")

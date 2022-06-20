@@ -4,11 +4,6 @@ import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -106,36 +101,6 @@ public class Apriori {
         logger.warn("item名称及其标号: {}", itemNameAndMark);
     }
     
-    
-    /**
-     * 从指定csv文件获取数据
-     *
-     * @param csvPath csv 数据文件
-     * @throws IOException 数据读取异常
-     */
-    public void getData2(String csvPath) throws URISyntaxException, IOException {
-        URI filePath = getClass().getResource(csvPath).toURI();
-        List<String> records = Files.readAllLines(Paths.get(filePath));
-        
-        records.forEach(record -> {
-            Set<Integer> shoppingData = new HashSet<>();
-            for (String itemBought : record.split(",")) {
-                // item类别计数
-                int itemClassCount = itemNameAndMark.size();
-                // 将item名称用数字标号
-                itemNameAndMark.putIfAbsent(itemBought, itemClassCount);
-                // item标号
-                Integer itemMark = itemNameAndMark.get(itemBought);
-                shoppingData.add(itemMark);
-            }
-            allShoppingData.add(shoppingData);
-        });
-        
-        logger.debug("所有购物数据: {}", allShoppingData);
-        logger.warn("item名称及其标号: {}", itemNameAndMark);
-    }
-    
-    
     /**
      * 挖掘第一个频繁项集
      */
@@ -209,7 +174,6 @@ public class Apriori {
         return frequentItemSetAndCount;
     }
     
-    
     /**
      * 生成下一代频繁项集
      */
@@ -236,7 +200,7 @@ public class Apriori {
                 recordCurrentItemSets();
             } else {
                 // 不能挖掘出新的频繁模式, 停止循环
-                logger.warn("最大频繁项集及其计数: {}", currentFrequentItemSetAndCount);
+                logger.warn("最大频繁项集及其支持率: {}", currentFrequentItemSetAndCount);
                 showAssociationRules(currentFrequentItemSetAndCount.keySet());
                 break;
             }
@@ -263,9 +227,7 @@ public class Apriori {
         if (currentItemSetDimonsion == 1) {
             return true;
         }
-        
         Set<Set<Integer>> currentDemensionItemSets = currentFrequentItemSetAndCount.keySet();
-        
         // 获取该项集所有的k-1项集, 判断
         for (int i = 0; i < itemSet.size(); i++) {
             // 集合和数组的remove 操作不一样, 这里需要进行转换

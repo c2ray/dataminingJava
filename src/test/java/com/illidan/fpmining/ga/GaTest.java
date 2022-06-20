@@ -18,7 +18,7 @@ public class GaTest {
     
     @Test
     void timeFpGeneticAlgorithm() throws IOException {
-        String path = "/fake/fake_data_100000.csv";
+        String path = "/fake/10/fake_data_1000000.csv";
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(path);
         // 计时
         long start = System.currentTimeMillis();
@@ -28,7 +28,7 @@ public class GaTest {
         testFpGeneticAlgorithm(csvRecords, supportRate, confidentRate);
         
         long end = System.currentTimeMillis();
-        logger.info("用时: {} ms", (end - start));
+        System.out.println("用时: " + (end - start) + "秒");
     }
     
     
@@ -42,8 +42,8 @@ public class GaTest {
                         100,
                         0.95,
                         0.001,
-                        5,
-                        100);
+                        10,
+                        3);
         fpGeneticAlgorithm.recordChromosomeCount(csvRecords);
         fpGeneticAlgorithm.ga();
         List<String> frequentSet = fpGeneticAlgorithm.getFrequentSet();

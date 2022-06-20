@@ -122,7 +122,7 @@ public class FpGeneticAlgorithm {
      * <p>
      * [0, 1, 3, 5] -> 43 -> 101011
      */
-    private String shoppingDataToChromosome(Set<Integer> itemSet) {
+    private String transactionDataToChromosome(Set<Integer> itemSet) {
         // 将itemSet表示为10进制
         int count = (int) itemSet.stream()
                 .mapToDouble(i -> Math.pow(2, i))
@@ -153,10 +153,10 @@ public class FpGeneticAlgorithm {
     public void recordChromosomeCount(List<CSVRecord> records) {
         recordCount = records.size();
         // 将所有记录中的item 用数字表示
-        List<Set<Integer>> allShoppingDataMarked = markRecord(records);
+        List<Set<Integer>> allTransactionDataMarked = markRecord(records);
         // 将[0, 1, 3] -> 1011; 记录每个染色体出现的次数
-        countChromosomeOccurrence(allShoppingDataMarked);
-        logger.debug("item名称及其标号: {}", itemNameAndMarks);
+        countChromosomeOccurrence(allTransactionDataMarked);
+        logger.warn("item名称及其标号: {}", itemNameAndMarks);
         logger.debug("染色体及其计数: {}", chromosomeAndCounts);
     }
     
@@ -197,9 +197,9 @@ public class FpGeneticAlgorithm {
      * 2. 记录每条染色体出现的次数
      */
     @SuppressWarnings("all")
-    private void countChromosomeOccurrence(List<Set<Integer>> allShoppingDataMarked) {
-        List<String> chromosomes = allShoppingDataMarked.stream()
-                .map(this::shoppingDataToChromosome)
+    private void countChromosomeOccurrence(List<Set<Integer>> allTransactionDataMarked) {
+        List<String> chromosomes = allTransactionDataMarked.stream()
+                .map(this::transactionDataToChromosome)
                 .collect(Collectors.toList());
         
         // 记录所有的染色体出现的次数
@@ -244,28 +244,28 @@ public class FpGeneticAlgorithm {
      * 2. 将给定的记录中的每个item 用数字表示后返回
      */
     private List<Set<Integer>> markRecord(List<CSVRecord> records) {
-        List<Set<Integer>> allShoppingData = new ArrayList<>();
+        List<Set<Integer>> allTransaction = new ArrayList<>();
         // 将商品种类转换成 0, 1, 2 这样的数字
         // 将购买记录转化为set<Integer>, ([0, 1, 4]);
         records.forEach(record -> {
-            // 一条购物数据
-            String itemsBoughtStr = record.get(0);
-            Set<Integer> shoppingData = new HashSet<>();
-            // 将String类型的商品数据转化成Set类型([0, 1, 4])
-            for (String itemBought : itemsBoughtStr.split(",")) {
+            // 一条数据
+            String oneTransaction = record.get(0);
+            Set<Integer> transactionData = new HashSet<>();
+            // 将String类型的数据转化成Set类型([0, 1, 4])
+            for (String oneItem : oneTransaction.split(",")) {
                 // item类别计数
                 int itemClassCount = itemNameAndMarks.size();
                 // 将item名称用数字标号
-                itemNameAndMarks.putIfAbsent(itemBought, itemClassCount);
+                itemNameAndMarks.putIfAbsent(oneItem, itemClassCount);
                 // item标号
-                Integer itemMark = itemNameAndMarks.get(itemBought);
-                shoppingData.add(itemMark);
+                Integer itemMark = itemNameAndMarks.get(oneItem);
+                transactionData.add(itemMark);
             }
-            allShoppingData.add(shoppingData);
+            allTransaction.add(transactionData);
         });
         
-        logger.debug("所有购物数据: {}", allShoppingData);
-        return allShoppingData;
+        logger.debug("所有数据: {}", allTransaction);
+        return allTransaction;
     }
     
     
@@ -283,11 +283,9 @@ public class FpGeneticAlgorithm {
         int totalCount;
         // 从缓存中获取染色体总计数
         totalCount = chromosomeTotalCount.getOrDefault(chromosomeStr, 0);
-        
         if (totalCount != 0) {
             return totalCount;
         }
-        
         for (Map.Entry<String, Integer> chromosomeAndCount : chromosomeAndCounts.entrySet()) {
             String chromosome = chromosomeAndCount.getKey();
             if (isSubStr(chromosome, chromosomeStr)) {
@@ -378,7 +376,6 @@ public class FpGeneticAlgorithm {
                         newIndividual.setGene(geneIndex, parent2.getGene(geneIndex));
                     }
                 }
-                // logger.info("新的个体: {}", newIndividual);
                 newPopulation.setIndividual(individualIndex, newIndividual);
             } else {
                 // 直接将精英流传到下一代

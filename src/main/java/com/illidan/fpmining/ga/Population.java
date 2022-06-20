@@ -56,7 +56,6 @@ public class Population {
      * 将种群中指定位置的个体替换掉
      */
     public void setIndividual(int position, Individual individual) {
-        // individuals.set(position, individual);
         individuals[position] = individual;
     }
     
@@ -84,12 +83,6 @@ public class Population {
     public Individual getFittest(int rank) {
         return Arrays.stream(individuals)
                 .sorted()
-                // .sorted((individual1, individual2) -> {
-                //             double fintness1 = individual1.getFintness();
-                //             double fintness2 = individual2.getFintness();
-                //             // 递减排序
-                //             return Double.compare(fintness2, fintness1);
-                //         })
                 .collect(Collectors.toList())
                 .get(rank);
     }

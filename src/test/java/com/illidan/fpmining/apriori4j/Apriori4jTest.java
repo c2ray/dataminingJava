@@ -18,12 +18,11 @@ import java.util.List;
  * @author Illidan
  */
 public class Apriori4jTest {
-    
     @Test
     void timeApriori4j() throws IOException, AprioriTimeoutException {
         // 读取数据
         // String filePath = "/fake/data1.csv";
-        String filePath = "/fake/fake_data_100000.csv";
+        String filePath = "/fake/fake_data_100.csv";
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(filePath);
         long start = System.currentTimeMillis();
         

@@ -11,11 +11,11 @@
 	</appender>
 
 	<!-- 整体日志级别 -->
-	<root level="warn">
+	<root level="info">
 		<appender-ref ref="STDOUT"/>
 	</root>
 
 	<!-- 自定义日志 -->
-	<logger name="com.illidan.fpmining" level="debug"/>
+	<logger name="com.illidan.fpmining.*" level="info"/>
 
 </configuration>

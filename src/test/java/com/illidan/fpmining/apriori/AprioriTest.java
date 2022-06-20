@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.List;
 
 class AprioriTest {
@@ -19,6 +18,7 @@ class AprioriTest {
     
     private final Logger logger = LoggerFactory.getLogger(AprioriTest.class);
     
+    @Disabled
     @Test
     void testAprioriForBookexercise() throws IOException {
         String fileName = "/fake/data1.csv";
@@ -38,7 +38,7 @@ class AprioriTest {
     @Test
     void timeApriori() throws IOException {
         // 读取csv格式的数据
-        String fileName = String.format("/fake/fake_data_%d.csv", 1_000_00);
+        String fileName = String.format("/fake/10/fake_data_%d.csv", 1_000000);
         List<CSVRecord> csvRecords = DataReader.getCsvRecords(fileName);
         // 开始计时
         long start = System.currentTimeMillis();
@@ -49,7 +49,6 @@ class AprioriTest {
         
         long end = System.currentTimeMillis();
         System.out.println("用时: " + (end - start) + " ms");
-        
     }
     
     void testApriori(List<CSVRecord> csvRecords, double minSupport, double minConfidence) {
@@ -57,10 +56,9 @@ class AprioriTest {
         apriori.getData(csvRecords);
         apriori.findFirstFrequentItemset();
         apriori.aprioriGen();
-        long end = System.currentTimeMillis();
     }
     
-    
+    @Disabled
     @ParameterizedTest
     @MethodSource("suffixSource")
     void testApriori2(int fileSuffix) throws IOException {
@@ -69,15 +67,8 @@ class AprioriTest {
         apriori.getData(csvRecords);
         apriori.findFirstFrequentItemset();
         apriori.aprioriGen();
-        
     }
     
-    
-    @Test
-    @Disabled
-    void testGetData() throws IOException, URISyntaxException {
-        apriori.getData2("/fake/fake_data_10000000.csv");
-    }
     
     static int[] suffixSource() {
         return new int[]{10, 100, 1000, 10_000, 100_000, 1_000_000};

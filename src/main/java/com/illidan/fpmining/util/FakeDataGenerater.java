@@ -71,7 +71,7 @@ public class FakeDataGenerater {
         
         Path path = Paths.get(getClass().getResource("/").toURI()).toAbsolutePath();
         // 这里的路径不能加 /, 否则会从盘符开始: J:/...
-        Path csvFilePath = path.resolve(String.format("fake/fake_data_%s.csv", n));
+        Path csvFilePath = path.resolve(String.format("fake/%s/fake_data_%s.csv", maxItemCount, n));
         logger.info("输出文件路径: {}", csvFilePath);
         // 将结果写入到文件中
         FileWriter fileWriter = new FileWriter(csvFilePath.toFile());
